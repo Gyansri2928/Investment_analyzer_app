@@ -274,7 +274,7 @@ class _MonthlyBreakdownPageState extends State<MonthlyBreakdownPage> {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: MaterialStateProperty.all(
+                  headingRowColor: WidgetStateProperty.all(
                     isDark ? Colors.white10 : Colors.grey.shade100,
                   ),
                   columnSpacing: 20,
@@ -284,9 +284,7 @@ class _MonthlyBreakdownPageState extends State<MonthlyBreakdownPage> {
                     final isDisb = _safeDouble(row['disbursement']) > 0;
 
                     return DataRow(
-                      color: MaterialStateProperty.resolveWith<Color?>((
-                        states,
-                      ) {
+                      color: WidgetStateProperty.resolveWith<Color?>((states) {
                         if (isDisb) return Colors.blue.withOpacity(0.05);
                         return null; // default
                       }),
