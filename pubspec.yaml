@@ -1,0 +1,50 @@
+name: property_analyzer_mobile
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI & Utilities
+  cupertino_icons: ^1.0.8
+  intl: ^0.20.2
+  
+  # File Generation
+  excel: ^4.0.0
+  pdf: ^3.10.4
+  printing: ^5.11.0
+  
+  # Sharing & Storage (REQUIRED for your export feature)
+  share_plus: ^9.0.0
+  path_provider: 2.1.5       # <--- ADDED BACK (Required for imports)
+  shared_preferences: 2.3.2  # <--- ADDED BACK (Required for imports)
+
+dependency_overrides:
+  # Force Android parts to stay on SDK 34 compatible versions
+  path_provider_android: 2.2.12
+  shared_preferences_android: 2.3.3
+  
+  # Ensure the main packages match standard stable versions
+  path_provider: 2.1.5
+  shared_preferences: 2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: "^0.13.1"
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo.png"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.png
