@@ -1,16 +1,23 @@
 import 'dart:ui';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // ✅ REQUIRED for SystemChrome
+import 'package:property_analyzer_mobile/controller/auth_controller.dart';
 import 'package:property_analyzer_mobile/controller/property_controller.dart';
 import 'package:property_analyzer_mobile/pages/pcm.dart';
+import 'package:property_analyzer_mobile/pages/login_page.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'firebase_options.dart';
 
 void main() async {
   // ✅ FIX 1: Add parenthesis and setup System UI for Full Screen
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  Get.put(AuthController());
   Get.put(PropertyController());
+  Get.put(ThemeController());
 
   // This forces the app to fill the screen (including behind the status bar)
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -41,227 +48,338 @@ class AppColors {
   static const Color textLight = Color(0xFFF8F9FA);
 }
 
-class PropertyAnalyzerApp extends StatefulWidget {
+class PropertyAnalyzerApp extends StatelessWidget {
   const PropertyAnalyzerApp({super.key});
 
   @override
-  State<PropertyAnalyzerApp> createState() => _PropertyAnalyzerAppState();
-}
-
-class _PropertyAnalyzerAppState extends State<PropertyAnalyzerApp> {
-  ThemeMode _themeMode = ThemeMode.light;
-
-  void toggleTheme() {
-    setState(() {
-      _themeMode = _themeMode == ThemeMode.light
-          ? ThemeMode.dark
-          : ThemeMode.light;
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: 'Property Investment Analyzer',
-      debugShowCheckedModeBanner: false,
-      themeMode: _themeMode,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: AppColors.bgLightStart,
-        colorScheme: const ColorScheme.light(
-          primary: AppColors.headerLightEnd,
-          secondary: AppColors.headerLightStart,
+    // Access ThemeController to react to changes
+    final ThemeController themeController = Get.find();
+
+    return Obx(
+      () => GetMaterialApp(
+        title: 'Property Investment Analyzer',
+        debugShowCheckedModeBanner: false,
+
+        // ✅ Theme Logic controlled by GetX
+        themeMode: themeController.isDarkMode.value
+            ? ThemeMode.dark
+            : ThemeMode.light,
+
+        theme: ThemeData(
+          useMaterial3: true,
+          brightness: Brightness.light,
+          scaffoldBackgroundColor: AppColors.bgLightStart,
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.headerLightEnd,
+            secondary: AppColors.headerLightStart,
+          ),
         ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: AppColors.bgDark,
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.accentTeal,
-          secondary: AppColors.headerDarkEnd,
+        darkTheme: ThemeData(
+          useMaterial3: true,
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: AppColors.bgDark,
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.accentTeal,
+            secondary: AppColors.headerDarkEnd,
+          ),
         ),
-      ),
-      home: MainLayout(
-        toggleTheme: toggleTheme,
-        isDarkMode: _themeMode == ThemeMode.dark,
+
+        // ✅ THE IMPORTANT PART: AUTH GATE
+        // If user is null -> Show LoginPage
+        // If user is logged in -> Show MainLayout
+        home: Obx(() {
+          return Get.find<AuthController>().firebaseUser.value == null
+              // ✅ ADD key: ValueKey('login')
+              ? const LoginPage(key: ValueKey('login'))
+              // ✅ ADD key: ValueKey('home')
+              : const MainLayout(key: ValueKey('home'));
+        }),
       ),
     );
   }
 }
 
 class MainLayout extends StatelessWidget {
-  final VoidCallback toggleTheme;
-  final bool isDarkMode;
-
-  const MainLayout({
-    super.key,
-    required this.toggleTheme,
-    required this.isDarkMode,
-  });
+  const MainLayout({super.key}); // No arguments needed now!
 
   @override
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 768;
+    final themeController = Get.find<ThemeController>(); // Access controller
 
-    return Scaffold(
-      // ✅ FIX 2: Essential for "Behind Notch" layout
-      extendBodyBehindAppBar: true,
-
-      appBar: AppBar(
-        // Make the standard AppBar invisible so our GlassHeader shows
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        // ✅ FIX 3: Use flexibleSpace. This automatically stretches to cover the status bar
-        flexibleSpace: GlassHeader(
-          isMobile: isMobile,
-          toggleTheme: toggleTheme,
-          isDarkMode: isDarkMode,
+    return Obx(
+      () => Scaffold(
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: GlassHeader(isMobile: isMobile), // Cleaner!
+          toolbarHeight: isMobile ? 56 : 75,
         ),
-        // We set the height of the toolbar to 0 because flexibleSpace handles it
-        toolbarHeight: isMobile ? 56 : 75,
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: themeController.isDarkMode.value
+                ? null
+                : const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.bgLightStart, AppColors.bgLightEnd],
+                  ),
+            color: themeController.isDarkMode.value ? AppColors.bgDark : null,
+          ),
+          child: Padding(
+            padding: EdgeInsets.only(top: isMobile ? 80 : 100),
+            child:
+                const PropertyComparisonMobile(), // Make sure this matches your import
+          ),
+        ),
+        bottomNavigationBar: isMobile ? null : const DesktopFooter(),
       ),
-
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: isDarkMode
-              ? null
-              : const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.bgLightStart, AppColors.bgLightEnd],
-                ),
-          color: isDarkMode ? AppColors.bgDark : null,
-        ),
-        // ✅ FIX 4: Add top padding to body so content doesn't hide behind the header
-        // We use kToolbarHeight + padding to push the content down correctly
-        child: Padding(
-          padding: EdgeInsets.only(top: isMobile ? 80 : 100),
-          child: const PropertyComparisonPage(),
-        ),
-      ),
-      bottomNavigationBar: isMobile ? null : const DesktopFooter(),
     );
   }
 }
 
 class GlassHeader extends StatelessWidget {
   final bool isMobile;
-  final VoidCallback toggleTheme;
-  final bool isDarkMode;
 
-  const GlassHeader({
-    super.key,
-    required this.isMobile,
-    required this.toggleTheme,
-    required this.isDarkMode,
-  });
+  const GlassHeader({super.key, required this.isMobile});
 
   @override
   Widget build(BuildContext context) {
+    final themeController = Get.find<ThemeController>();
+    final authController = Get.find<AuthController>(); // ✅ Access Auth Data
+
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDarkMode
-                  ? [
-                      AppColors.headerDarkStart.withOpacity(0.85),
-                      AppColors.headerDarkEnd.withOpacity(0.85),
-                    ]
-                  : [
-                      AppColors.headerLightStart.withOpacity(0.85),
-                      AppColors.headerLightEnd.withOpacity(0.85),
-                    ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        child: Obx(
+          () => Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: themeController.isDarkMode.value
+                    ? [
+                        AppColors.headerDarkStart.withOpacity(0.85),
+                        AppColors.headerDarkEnd.withOpacity(0.85),
+                      ]
+                    : [
+                        AppColors.headerLightStart.withOpacity(0.85),
+                        AppColors.headerLightEnd.withOpacity(0.85),
+                      ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: const Border(bottom: BorderSide(color: Colors.white10)),
             ),
-            border: const Border(bottom: BorderSide(color: Colors.white10)),
-          ),
-          // ✅ FIX 5: Use SafeArea only for the ROW (Content), not the Container
-          // This allows the Container color to go UP behind the notch, but pushes the Logo DOWN into view.
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32),
-              child: Row(
-                children: [
-                  Image.asset(
-                    'assets/logo.png',
-                    height: isMobile ? 40 : 60,
-                    errorBuilder: (c, o, s) => const Icon(
-                      Icons.apartment,
-                      color: Colors.white,
-                      size: 40,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32),
+                child: Row(
+                  children: [
+                    // --- LOGO (Unchanged) ---
+                    Image.asset(
+                      'assets/logo.png',
+                      height: isMobile ? 40 : 60,
+                      errorBuilder: (c, o, s) => const Icon(
+                        Icons.apartment,
+                        color: Colors.white,
+                        size: 40,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  if (!isMobile)
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Property Investment Analyzer",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                    const SizedBox(width: 16),
+
+                    // --- TITLE (Unchanged) ---
+                    if (!isMobile)
+                      const Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Property Investment Analyzer",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          Row(
-                            children: [
-                              const Text(
-                                "Strategic Investment Insights • By ",
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const Text(
-                                "Agenthum AI Solutions",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+
+                    if (isMobile) const Spacer(),
+
+                    // --- RIGHT SIDE ICONS ---
+                    Row(
+                      children: [
+                        // 1. Theme Toggle
+                        IconButton(
+                          icon: Icon(
+                            themeController.isDarkMode.value
+                                ? Icons.light_mode
+                                : Icons.dark_mode,
+                            color: Colors.white,
+                          ),
+                          onPressed: themeController.toggleTheme,
+                        ),
+
+                        const SizedBox(width: 8),
+
+                        // ... inside GlassHeader build() ...
+
+                        // 2. ✅ USER DROPDOWN MENU
+                        Container(
+                          height: 36,
+                          width: 36,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white54, width: 2),
+                            color: Colors.white24,
+                          ),
+                          child: PopupMenuButton<String>(
+                            offset: const Offset(0, 45),
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            onSelected: (value) {
+                              if (value == 'logout') {
+                                authController.logout();
+                              }
+                            },
+                            itemBuilder: (BuildContext context) {
+                              final user = authController.firebaseUser.value;
+                              final email = user?.email ?? 'No Email';
+                              final name =
+                                  user?.displayName ?? email.split('@')[0];
+
+                              // ✅ Check Verification Status
+                              final isVerified = user?.emailVerified ?? false;
+
+                              return [
+                                // ROW 1 & 2: User Info + BADGE
+                                PopupMenuItem<String>(
+                                  enabled: false, // Static item
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        name,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: Theme.of(
+                                            context,
+                                          ).textTheme.bodyLarge?.color,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        email,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall?.color,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 8),
+
+                                      // ✅ THE VERIFICATION BADGE
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isVerified
+                                              ? Colors.green.withOpacity(0.1)
+                                              : Colors.orange.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          border: Border.all(
+                                            color: isVerified
+                                                ? Colors.green
+                                                : Colors.orange,
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              isVerified
+                                                  ? Icons.verified
+                                                  : Icons.gpp_bad,
+                                              size: 12,
+                                              color: isVerified
+                                                  ? Colors.green
+                                                  : Colors.orange,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              isVerified
+                                                  ? "Verified"
+                                                  : "Not Verified",
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: isVerified
+                                                    ? Colors.green
+                                                    : Colors.orange,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const PopupMenuDivider(
+                                  color: Colors.grey,
+                                  thickness: 1,
+                                ),
+
+                                // ROW 3: Sign Out
+                                const PopupMenuItem<String>(
+                                  value: 'logout',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.logout,
+                                        color: Colors.redAccent,
+                                        size: 20,
+                                      ),
+                                      SizedBox(width: 10),
+                                      Text(
+                                        "Sign Out",
+                                        style: TextStyle(
+                                          color: Colors.redAccent,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ];
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                  if (isMobile) const Spacer(), // Push icons to right on mobile
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                          color: Colors.white,
-                        ),
-                        onPressed: toggleTheme,
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        height: 36,
-                        width: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white54, width: 2),
-                          color: Colors.white24,
-                        ),
-                        child: const Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -295,5 +413,27 @@ class PropertyComparisonPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const PropertyComparisonMobile();
+  }
+}
+
+class ThemeController extends GetxController {
+  final _box = GetStorage();
+  final _key = 'isDarkMode';
+
+  // Observable state
+  RxBool isDarkMode = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Load saved theme or default to Light
+    isDarkMode.value = _box.read(_key) ?? false;
+    Get.changeThemeMode(isDarkMode.value ? ThemeMode.dark : ThemeMode.light);
+  }
+
+  void toggleTheme() {
+    isDarkMode.value = !isDarkMode.value;
+    Get.changeThemeMode(isDarkMode.value ? ThemeMode.dark : ThemeMode.light);
+    _box.write(_key, isDarkMode.value); // Save preference
   }
 }

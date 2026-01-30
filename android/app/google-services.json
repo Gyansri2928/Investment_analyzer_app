@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "689023568440",
+    "project_id": "property-investment-anal-a3b3d",
+    "storage_bucket": "property-investment-anal-a3b3d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:689023568440:android:c97c7f25d86ab29650b4cd",
+        "android_client_info": {
+          "package_name": "com.example.property_analyzer_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6U17TUWppFbwBwfABLFXkOTHpYW1fLu4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

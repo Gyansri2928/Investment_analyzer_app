@@ -512,163 +512,138 @@ class _InputsTabState extends State<InputsTab> {
         ? Colors.green
         : (isDark ? Colors.grey.shade700 : Colors.grey.shade300);
 
-    return IntrinsicHeight(
-      // Remove this if possible, but Stack inside works fine too.
-      // Better approach: Remove IntrinsicHeight entirely and use Stack to draw line
-      child: Stack(
-        children: [
-          // 1. THE VERTICAL LINE (Background)
-          if (!isLast)
-            Positioned(
-              top: 32, // Start below the circle
-              bottom: 0, // Stretch to the very bottom
-              left: 15, // Center align with the 32px circle (16 - 1 width/2)
-              width: 2,
-              child: Container(color: lineColor),
+    // ✅ FIX 1: Removed IntrinsicHeight wrapper
+    // The Stack will naturally take the size of the Row (Content)
+    return Stack(
+      children: [
+        // 1. THE VERTICAL LINE (Background)
+        // This works because Positioned relies on the Stack's height,
+        // which is determined by the Row below.
+        if (!isLast)
+          Positioned(
+            top: 32,
+            bottom: 0,
+            left: 15,
+            width: 2,
+            child: Container(color: lineColor),
+          ),
+
+        // 2. THE CONTENT (Foreground)
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --- LEFT SIDE: Just the Circle ---
+            Column(
+              children: [
+                InkWell(
+                  onTap: () => _goToStep(stepIndex),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: isCompleted
+                          ? Colors.green
+                          : (isActive
+                                ? AppColors.headerLightEnd
+                                : (isDark
+                                      ? Colors.grey.shade800
+                                      : Colors.grey.shade200)),
+                      shape: BoxShape.circle,
+                      border: isActive
+                          ? Border.all(
+                              color: isDark ? Colors.white : Colors.white,
+                              width: 2,
+                            )
+                          : Border.all(
+                              color: isDark
+                                  ? Colors.grey.shade700
+                                  : Colors.transparent,
+                            ),
+                      boxShadow: isActive
+                          ? [
+                              BoxShadow(
+                                color: AppColors.headerLightEnd.withValues(
+                                  alpha: 0.4,
+                                ),
+                                blurRadius: 6,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Center(
+                      child: isCompleted
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 18,
+                            )
+                          : Text(
+                              "$stepIndex",
+                              style: TextStyle(
+                                color: isActive ? Colors.white : Colors.grey,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ],
             ),
 
-          // 2. THE CONTENT (Foreground)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- LEFT SIDE: Just the Circle ---
-              Column(
+            const SizedBox(width: 16),
+
+            // --- RIGHT SIDE: Content ---
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   InkWell(
                     onTap: () => _goToStep(stepIndex),
                     child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: isCompleted
-                            ? Colors.green
-                            : (isActive
-                                  ? AppColors.headerLightEnd
-                                  : (isDark
-                                        ? Colors.grey.shade800
-                                        : Colors.grey.shade200)),
-                        shape: BoxShape.circle,
-                        border: isActive
-                            ? Border.all(
-                                color: isDark ? Colors.white : Colors.white,
-                                width: 2,
-                              )
-                            : Border.all(
-                                color: isDark
-                                    ? Colors.grey.shade700
-                                    : Colors.transparent,
-                              ),
-                        boxShadow: isActive
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.headerLightEnd.withValues(
-                                    alpha: 0.4,
-                                  ),
-                                  blurRadius: 6,
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Center(
-                        child: isCompleted
-                            ? const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 18,
-                              )
-                            : Text(
-                                "$stepIndex",
-                                style: TextStyle(
-                                  color: isActive ? Colors.white : Colors.grey,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(width: 16),
-
-              // --- RIGHT SIDE: Content ---
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    InkWell(
-                      onTap: () => _goToStep(stepIndex),
-                      child: Container(
-                        // Min height ensures space for line even when collapsed
-                        constraints: const BoxConstraints(minHeight: 40),
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isActive || isCompleted
-                                ? (isDark ? Colors.white : Colors.black87)
-                                : Colors.grey.shade600,
-                          ),
+                      constraints: const BoxConstraints(minHeight: 40),
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isActive || isCompleted
+                              ? (isDark ? Colors.white : Colors.black87)
+                              : Colors.grey.shade600,
                         ),
                       ),
                     ),
+                  ),
 
-                    AnimatedCrossFade(
-                      firstChild: Container(),
-                      secondChild: Padding(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        child: Column(
-                          children: [
-                            content,
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                if (stepIndex > 1)
-                                  OutlinedButton(
-                                    onPressed: () => _goToStep(stepIndex - 1),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: isDark
-                                          ? Colors.white70
-                                          : Colors.black87,
-                                      side: BorderSide(
-                                        color: isDark
-                                            ? Colors.white24
-                                            : Colors.black12,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                      ),
+                  AnimatedCrossFade(
+                    // ✅ FIX 2: Align to top so it shrinks upwards
+                    alignment: Alignment.topCenter,
+
+                    // ✅ FIX 3: Ensure width is defined even when hidden
+                    firstChild: Container(height: 0.0, width: double.infinity),
+
+                    secondChild: Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: Column(
+                        children: [
+                          content,
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              if (stepIndex > 1)
+                                OutlinedButton(
+                                  onPressed: () => _goToStep(stepIndex - 1),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: isDark
+                                        ? Colors.white70
+                                        : Colors.black87,
+                                    side: BorderSide(
+                                      color: isDark
+                                          ? Colors.white24
+                                          : Colors.black12,
                                     ),
-                                    child: const Text("Back"),
-                                  )
-                                else
-                                  const SizedBox(),
-
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    // ✅ NEW: Validate before proceeding
-                                    if (_validateCurrentStep(stepIndex)) {
-                                      if (isLast) {
-                                        widget.onAnalyze();
-                                      } else {
-                                        _goToStep(stepIndex + 1);
-                                      }
-                                    }
-                                  },
-                                  icon: isLast
-                                      ? const Icon(Icons.analytics)
-                                      : const Icon(Icons.arrow_forward),
-                                  label: Text(isLast ? "Analyze" : "Next"),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.headerLightEnd,
-                                    foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(20),
                                     ),
@@ -676,24 +651,52 @@ class _InputsTabState extends State<InputsTab> {
                                       horizontal: 24,
                                     ),
                                   ),
+                                  child: const Text("Back"),
+                                )
+                              else
+                                const SizedBox(),
+
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  if (_validateCurrentStep(stepIndex)) {
+                                    if (isLast) {
+                                      widget.onAnalyze();
+                                    } else {
+                                      _goToStep(stepIndex + 1);
+                                    }
+                                  }
+                                },
+                                icon: isLast
+                                    ? const Icon(Icons.analytics)
+                                    : const Icon(Icons.arrow_forward),
+                                label: Text(isLast ? "Analyze" : "Next"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.headerLightEnd,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      crossFadeState: isActive
-                          ? CrossFadeState.showSecond
-                          : CrossFadeState.showFirst,
-                      duration: const Duration(milliseconds: 300),
                     ),
-                  ],
-                ),
+                    crossFadeState: isActive
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                    duration: const Duration(milliseconds: 300),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1009,7 +1012,8 @@ class _InputsTabState extends State<InputsTab> {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                Expanded(
+                                Flexible(
+                                  fit: FlexFit.loose,
                                   child: _buildInput(
                                     "Size (sq.ft)",
                                     prop['size'],
@@ -1028,7 +1032,8 @@ class _InputsTabState extends State<InputsTab> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Expanded(
+                                Flexible(
+                                  fit: FlexFit.loose,
                                   child: _buildInput(
                                     "Possession (Mo)",
                                     prop['possessionMonths'],
@@ -1074,7 +1079,8 @@ class _InputsTabState extends State<InputsTab> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(
+                  Flexible(
+                    fit: FlexFit.loose,
                     child: _buildInput(
                       "Other Charges",
                       controller.propertyData['otherCharges'],
@@ -1090,7 +1096,8 @@ class _InputsTabState extends State<InputsTab> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Expanded(
+                  Flexible(
+                    fit: FlexFit.loose,
                     child: _buildInput(
                       "Stamp Duty (%)",
                       controller.propertyData['stampDuty'],
@@ -1102,7 +1109,8 @@ class _InputsTabState extends State<InputsTab> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(
+                  Flexible(
+                    fit: FlexFit.loose,
                     child: _buildInput(
                       "GST (%)",
                       controller.propertyData['gstPercentage'],
@@ -1145,7 +1153,8 @@ class _InputsTabState extends State<InputsTab> {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
+            Flexible(
+              fit: FlexFit.loose,
               child: _buildInput(
                 "Holding Period",
                 assumptions['investmentPeriod'],
@@ -1202,7 +1211,8 @@ class _InputsTabState extends State<InputsTab> {
                 // Row 1: Duration & Interval
                 Row(
                   children: [
-                    Expanded(
+                    Flexible(
+                      fit: FlexFit.loose,
                       child: _buildInput(
                         "Duration (Yrs)",
                         assumptions['clpDurationYears'],
@@ -1215,7 +1225,8 @@ class _InputsTabState extends State<InputsTab> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Expanded(
+                    Flexible(
+                      fit: FlexFit.loose,
                       child: _buildInput(
                         "Interval (Mo)",
                         assumptions['bankDisbursementInterval'],
@@ -1270,7 +1281,8 @@ class _InputsTabState extends State<InputsTab> {
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          Expanded(
+                          Flexible(
+                            fit: FlexFit.loose,
                             child: _buildInput(
                               "First Disb. (Mo)",
                               assumptions['bankDisbursementStartMonth'],
@@ -1283,7 +1295,8 @@ class _InputsTabState extends State<InputsTab> {
                           ),
                           const SizedBox(width: 10),
                           // ... inside the Bank Funding Window Row ...
-                          Expanded(
+                          Flexible(
+                            fit: FlexFit.loose,
                             child: Builder(
                               builder: (ctx) {
                                 // 1. Get the list safely from Controller
@@ -1384,7 +1397,8 @@ class _InputsTabState extends State<InputsTab> {
             children: [
               Row(
                 children: [
-                  Expanded(
+                  Flexible(
+                    fit: FlexFit.loose,
                     child: _buildInput(
                       "Rate (%)",
                       assumptions['homeLoanRate'],
@@ -1397,7 +1411,8 @@ class _InputsTabState extends State<InputsTab> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(
+                  Flexible(
+                    fit: FlexFit.loose,
                     child: _buildInput(
                       "Tenure (Yrs)",
                       assumptions['homeLoanTerm'],
@@ -1503,7 +1518,8 @@ class _InputsTabState extends State<InputsTab> {
                               color: Colors.blue,
                             ),
                             const SizedBox(width: 10),
-                            Expanded(
+                            Flexible(
+                              fit: FlexFit.loose,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -1560,7 +1576,8 @@ class _InputsTabState extends State<InputsTab> {
             children: [
               Row(
                 children: [
-                  Expanded(
+                  Flexible(
+                    fit: FlexFit.loose,
                     child: _buildInput(
                       "Share (%)",
                       assumptions['personalLoan1Share'],
@@ -1571,7 +1588,8 @@ class _InputsTabState extends State<InputsTab> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(
+                  Flexible(
+                    fit: FlexFit.loose,
                     child: _buildStaticInfo(
                       "Amount",
                       getLoanAmount('personalLoan1Share'),
@@ -1583,7 +1601,8 @@ class _InputsTabState extends State<InputsTab> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Expanded(
+                  Flexible(
+                    fit: FlexFit.loose,
                     child: _buildInput(
                       "Tenure (Yrs)",
                       assumptions['personalLoan1Term'],
@@ -1596,7 +1615,8 @@ class _InputsTabState extends State<InputsTab> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(
+                  Flexible(
+                    fit: FlexFit.loose,
                     child: _buildInput(
                       "Rate (%)",
                       assumptions['personalLoan1Rate'],
